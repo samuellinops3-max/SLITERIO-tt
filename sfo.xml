@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PARAM.SFO do Cobra Arena. TITLE_ID deve ter 9 caracteres (4 letras + 5 numeros). -->
+<sfo>
+  <param key="TITLE" value="Cobra Arena" />
+  <param key="TITLE_ID" value="COBR00001" />
+  <param key="CATEGORY" value="GD" />
+  <param key="APP_VER" value="01.00" />
+  <param key="VERSION" value="01.00" />
+  <param key="PS3_SYSTEM_VER" value="03.5000" />
+  <param key="PARENTAL_LEVEL" value="1" />
+  <param key="RESOLUTION" value="1" />
+  <param key="SOUND_FORMAT" value="1" />
+  <param key="ATTRIBUTE" value="0" />
+</sfo>
