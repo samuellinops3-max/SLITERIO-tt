@@ -1,87 +1,111 @@
-// Cobra simples - PS3 homebrew (tiny3d)
-// D-pad esquerda/direita = virar | START = sair
-
+#include <psl1ght.h>
+#include <tiny3d.h>
+#include <io/pad.h>
 #include <stdlib.h>
 #include <math.h>
-#include <stdint.h>
-#include <sysutil/sysutil.h>
-#include <io/pad.h>
-#include <tiny3d.h>
 
-#define W 1280.0f
-#define H 720.0f
-#define MAX_PTS 200
-#define SIZE 14.0f
-
-static float px[MAX_PTS], py[MAX_PTS];
-static int n = 20;
-static float angle = 0.0f;
-static float fx = 640, fy = 360;
-static int exit_requested = 0;
-
-static void sys_cb(uint64_t status, uint64_t param, void *userdata) {
-    (void)param; (void)userdata;
-    if (status == SYSUTIL_EVENT_MENU_CLOSE || status == SYSUTIL_EVENT_EXIT_GAME)
-        exit_requested = 1;
-}
-
-static void square(float x, float y, float s, uint32_t c) {
-    tiny3d_VertexPos(x,     y,     0); tiny3d_VertexColor(c);
-    tiny3d_VertexPos(x + s, y,     0); tiny3d_VertexColor(c);
-    tiny3d_VertexPos(x + s, y + s, 0); tiny3d_VertexColor(c);
-    tiny3d_VertexPos(x,     y + s, 0); tiny3d_VertexColor(c);
-}
-
-int main(void) {
-    tiny3d_Init(1024 * 1024);
+int main(){
+    tiny3d_Init(1024*1024);
+    padInfo padinfo;
+    padData paddata;
     ioPadInit(7);
-    sysUtilRegisterCallback(SYSUTIL_EVENT_SLOT0, sys_cb, NULL);
 
-    for (int i = 0; i < MAX_PTS; i++) { px[i] = 640; py[i] = 360; }
+    int state = 0; // 0=menu 1=jogando
+    int snakeX = 640, snakeY = 360;
+    int dirX = 8, dirY = 0;
+    int foodX = 300, foodY = 200;
+    int score = 0;
+    int frame = 0;
 
-    while (!exit_requested) {
-        sysUtilCheckCallback();
-        padData pad;
-        ioPadGetData(0, &pad);
-        uint16_t b1 = pad.button[CELL_PAD_BTN_OFFSET_DIGITAL1];
-        if (b1 & CELL_PAD_CTRL_START) break;
-        if (b1 & CELL_PAD_CTRL_LEFT)  angle -= 0.06f;
-        if (b1 & CELL_PAD_CTRL_RIGHT) angle += 0.06f;
+    int aiX[4] = {200, 1000, 400, 900};
+    int aiY[4] = {150, 500, 600, 100};
+    int aiDirX[4] = {5, -5, 4, -4};
+    int aiDirY[4] = {3, -3, -4, 4};
+    int aiColor[4] = {0xffff00ff, 0xff00ffffff, 0xffff00ff, 0xffff8000};
 
-        // move a cabeca e guarda o rastro
-        for (int i = n - 1; i > 0; i--) { px[i] = px[i - 1]; py[i] = py[i - 1]; }
-        px[0] += cosf(angle) * 4.0f;
-        py[0] += sinf(angle) * 4.0f;
-
-        // bateu na borda: volta do outro lado
-        if (px[0] < 0) px[0] += W;
-        if (px[0] > W) px[0] -= W;
-        if (py[0] < 0) py[0] += H;
-        if (py[0] > H) py[0] -= H;
-
-        // comeu a comida: cresce e nova comida
-        float dx = px[0] - fx, dy = py[0] - fy;
-        if (dx * dx + dy * dy < 400.0f && n < MAX_PTS - 1) {
-            n += 5;
-            fx = 100 + rand() % 1000;
-            fy = 100 + rand() % 500;
+    while(1){
+        ioPadGetInfo(&padinfo);
+        if(padinfo.status[0]){
+            ioPadGetData(0, &paddata);
+            if(state==0 && paddata.BTN_CROSS) state=1;
+            if(state==1){
+                if(paddata.BTN_CROSS) break;
+                if(paddata.BTN_UP) {dirX=0; dirY=-8;}
+                if(paddata.BTN_DOWN) {dirX=0; dirY=8;}
+                if(paddata.BTN_LEFT) {dirX=-8; dirY=0;}
+                if(paddata.BTN_RIGHT) {dirX=8; dirY=0;}
+                if(paddata.BTN_START) state=0;
+            }
         }
 
-        tiny3d_Clear(0xff000000, TINY3D_CLEAR_ALL);
-        tiny3d_AlphaTest(0, 0, TINY3D_ALPHA_FUNC_ALWAYS);
+        if(state==1){
+            snakeX += dirX; snakeY += dirY;
+            if(snakeX<0) snakeX=1280; if(snakeX>1280) snakeX=0;
+            if(snakeY<0) snakeY=720; if(snakeY>720) snakeY=0;
+
+            for(int i=0;i<4;i++){
+                if(aiX[i] < foodX) aiDirX[i]=5; else aiDirX[i]=-5;
+                if(aiY[i] < foodY) aiDirY[i]=4; else aiDirY[i]=-4;
+                if(abs(aiX[i]-snakeX)<80 && abs(aiY[i]-snakeY)<80){
+                    aiDirX[i] = -aiDirX[i]; aiDirY[i] = -aiDirY[i];
+                }
+                aiX[i]+=aiDirX[i]; aiY[i]+=aiDirY[i];
+                if(aiX[i]<0) aiX[i]=1280; if(aiX[i]>1280) aiX[i]=0;
+                if(aiY[i]<0) aiY[i]=720; if(aiY[i]>720) aiY[i]=0;
+            }
+
+            if(snakeX>foodX-20 && snakeX<foodX+20 && snakeY>foodY-20 && snakeY<foodY+20){
+                score++;
+                foodX = 40 + (rand()%1200);
+                foodY = 40 + (rand()%640);
+            }
+        }
+
+        tiny3d_Clear(0xff101010, TINY3D_CLEAR_ALL);
         tiny3d_Project2D();
 
-        tiny3d_SetPolygon(TINY3D_QUADS);
-        square(fx - 8, fy - 8, 16, 0xffff4040);              // comida
-        for (int i = 0; i < n; i++) {
-            uint32_t c = (i == 0) ? 0xff40ff40 : 0xff20b020; // cabeca mais clara
-            square(px[i] - SIZE / 2, py[i] - SIZE / 2, SIZE, c);
+        if(state==0){
+            tiny3d_SetPolygon(TINY3D_QUADS);
+            for(int i=0;i<10;i++){
+                int mx = 300 + i*60;
+                int my = 300 + (int)(sin(frame*0.05+i)*30);
+                tiny3d_VertexPos(mx, my, 0); tiny3d_VertexColor(0xff00ff00);
+                tiny3d_VertexPos(mx+40, my, 0); tiny3d_VertexColor(0xff00ff00);
+                tiny3d_VertexPos(mx+40, my+40, 0); tiny3d_VertexColor(0xff00ff00);
+                tiny3d_VertexPos(mx, my+40, 0); tiny3d_VertexColor(0xff00ff00);
+            }
+            tiny3d_End();
+            tiny3d_SetPolygon(TINY3D_QUADS);
+            tiny3d_VertexPos(540, 500, 0); tiny3d_VertexColor(0xffffffff);
+            tiny3d_VertexPos(740, 500, 0); tiny3d_VertexColor(0xffffffff);
+            tiny3d_VertexPos(740, 560, 0); tiny3d_VertexColor(0xffffffff);
+            tiny3d_VertexPos(540, 560, 0); tiny3d_VertexColor(0xffffffff);
+            tiny3d_End();
+        } else {
+            tiny3d_SetPolygon(TINY3D_QUADS);
+            tiny3d_VertexPos(foodX, foodY, 0); tiny3d_VertexColor(0xff0000ff);
+            tiny3d_VertexPos(foodX+20, foodY, 0); tiny3d_VertexColor(0xff0000ff);
+            tiny3d_VertexPos(foodX+20, foodY+20, 0); tiny3d_VertexColor(0xff0000ff);
+            tiny3d_VertexPos(foodX, foodY+20, 0); tiny3d_VertexColor(0xff0000ff);
+            tiny3d_End();
+            tiny3d_SetPolygon(TINY3D_QUADS);
+            tiny3d_VertexPos(snakeX, snakeY, 0); tiny3d_VertexColor(0xff00ff00);
+            tiny3d_VertexPos(snakeX+30, snakeY, 0); tiny3d_VertexColor(0xff00ff00);
+            tiny3d_VertexPos(snakeX+30, snakeY+30, 0); tiny3d_VertexColor(0xff00ff00);
+            tiny3d_VertexPos(snakeX, snakeY+30, 0); tiny3d_VertexColor(0xff00ff00);
+            tiny3d_End();
+            for(int i=0;i<4;i++){
+                tiny3d_SetPolygon(TINY3D_QUADS);
+                tiny3d_VertexPos(aiX[i], aiY[i], 0); tiny3d_VertexColor(aiColor[i]);
+                tiny3d_VertexPos(aiX[i]+35, aiY[i], 0); tiny3d_VertexColor(aiColor[i]);
+                tiny3d_VertexPos(aiX[i]+35, aiY[i]+35, 0); tiny3d_VertexColor(aiColor[i]);
+                tiny3d_VertexPos(aiX[i], aiY[i]+35, 0); tiny3d_VertexColor(aiColor[i]);
+                tiny3d_End();
+            }
         }
-        tiny3d_End();
-
         tiny3d_Flip();
+        frame++;
+        sysTimerUsleep(16000);
     }
-
-    ioPadEnd();
     return 0;
 }
