@@ -1,0 +1,32 @@
+name: Build PS3 Slither
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make gcc wget xz-utils
+
+      - name: Baixar toolchain PS3
+        run: |
+          wget -q https://github.com/bucanero/ps3toolchain/releases/download/20220523/ps3dev-ubuntu20.04.tar.xz
+          mkdir -p ~/ps3dev
+          tar xf ps3dev-ubuntu20.04.tar.xz -C ~/ps3dev
+          echo "PS3DEV=$HOME/ps3dev" >> $GITHUB_ENV
+          echo "PSL1GHT=$HOME/ps3dev" >> $GITHUB_ENV
+          echo "$HOME/ps3dev/bin:$HOME/ps3dev/ppu/bin:$HOME/ps3dev/spu/bin" >> $GITHUB_PATH
+
+      - name: Verificar compilador
+        run: ppu-gcc --version
+
+      - name: Compilar jogo
+        run: make clean && make
