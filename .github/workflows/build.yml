@@ -1,25 +1,22 @@
-name: Build PS3 PKG
-on: [push]
+name: Build PS3 Slither
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ps3dev/ps3dev:latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Build com Docker direto
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/src -w /src ghcr.io/ps3dev/psl1ght:latest bash -c "
-            python3 -c \"from PIL import Image; Image.new('RGB',(320,176),(0,200,0)).save('ICON0.PNG')\"
-            make clean
-            make
-            ls -lh
-            make pkg
-            ls -lh *.pkg
-          "
-      - name: Criar Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0
-          name: Slither PS3
-          files: "*.pkg"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Verificar ambiente
+        run: ppu-gcc --version
+
+      - name: Compilar
+        run: make clean && make
