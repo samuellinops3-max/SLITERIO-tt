@@ -1,25 +1,25 @@
-name: build-pkg
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
+name: Build PS3 PKG
+on: [push]
 jobs:
   build:
-    runs-on: ubuntu-20.04
-    container:
-      # Mesma imagem do build do Cobra Arena que ja compilou.
-      # Se o seu build.yml usar outra imagem, troque aqui pela mesma.
-      image: ps3dev/psl1ght:v2
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Compilar e gerar .pkg
-        run: make
-
-      - name: Enviar o .pkg
-        uses: actions/upload-artifact@v4
+      - name: Build com Docker direto
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/src -w /src ghcr.io/ps3dev/psl1ght:latest bash -c "
+            python3 -c \"from PIL import Image; Image.new('RGB',(320,176),(0,200,0)).save('ICON0.PNG')\"
+            make clean
+            make
+            ls -lh
+            make pkg
+            ls -lh *.pkg
+          "
+      - name: Criar Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: cobra-arena-pkg
-          path: cobra_arena.pkg
+          tag_name: v1.0
+          name: Slither PS3
+          files: "*.pkg"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
