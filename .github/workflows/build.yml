@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: 📥 Baixar código
@@ -16,19 +16,19 @@ jobs:
       - name: 🔧 Instalar dependências
         run: |
           sudo apt-get update
-          sudo apt-get install -y git wget xz-utils make gcc flex bison \
-            libelf-dev libgmp3-dev libmpfr-dev libmpc-dev zlib1g-dev
+          sudo apt-get install -y git wget xz-utils make gcc binutils bison flex \
+            libelf-dev libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev python3
 
-      - name: 🛠️ Baixar e instalar PS3 Toolchain
+      - name: 🛠️ Baixar PS3 Toolchain (bucanero)
         run: |
-          wget -q https://github.com/ps3dev/ps3dev-docker/releases/download/toolchain-20220523/ps3dev.tar.xz
+          wget -q https://github.com/bucanero/ps3toolchain/releases/download/20220523/ps3dev-ubuntu20.04.tar.xz
           mkdir -p ~/ps3dev
-          tar xf ps3dev.tar.xz -C ~/ps3dev
+          tar xf ps3dev-ubuntu20.04.tar.xz -C ~/ps3dev
           echo "PS3DEV=$HOME/ps3dev" >> $GITHUB_ENV
           echo "PSL1GHT=$HOME/ps3dev" >> $GITHUB_ENV
           echo "$HOME/ps3dev/bin:$HOME/ps3dev/ppu/bin:$HOME/ps3dev/spu/bin" >> $GITHUB_PATH
 
-      - name: ✅ Verificar instalação
+      - name: ✅ Verificar
         run: ppu-gcc --version
 
       - name: 🏗️ Compilar
