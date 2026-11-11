@@ -1,21 +1,28 @@
-name: Build PS3 Slither
+name: Build PS3 PKG
 
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/ps3dev/ps3dev:latest
+    container:
+      image: dborth/ps3dev:latest
 
     steps:
-      - name: 📥 Pegar código
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: ✅ Verificar compilador
-        run: ppu-gcc --version
+    - name: Compile and Generate PKG
+      run: |
+        make clean
+        make
 
-      - name: 🏗️ Compilar jogo
-        run: make clean && make
+    - name: Upload PKG Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: SlitherIO-PS3-PKG
+        path: "*.pkg"
