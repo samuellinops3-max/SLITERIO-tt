@@ -1,0 +1,25 @@
+name: build-pkg
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container:
+      # Mesma imagem do build do Cobra Arena que ja compilou.
+      # Se o seu build.yml usar outra imagem, troque aqui pela mesma.
+      image: ps3dev/psl1ght:v2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compilar e gerar .pkg
+        run: make
+
+      - name: Enviar o .pkg
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobra-arena-pkg
+          path: cobra_arena.pkg
